@@ -49,7 +49,7 @@ Mở [IAM Console](https://us-east-1.console.aws.amazon.com/iamv2/home#/home) v�
   - Runtime: Node.js 18.x.
   - Role: LambdaCustomConfigRole
 
-![alt text](image/LambdaCustomFunction.png)
+![alt text](image/LambdaCustomFunction.PNG)
 
 Cấu hình environment variables REGION cho function, đặt value là region triển khai AWS Config
 
