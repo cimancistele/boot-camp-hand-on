@@ -2,20 +2,27 @@
 
 ## Table of Contents
 1. [Giới thiệu](#introduction)
+2. [Prerequisites](#prerequisites)
 2. [Tạo Lambda Function cho custom rule](#createlambdafunction)
 3. [Tạo Custom Config rule](#createconfigrule)
-4. [Test Custom rule](#testcustomrule)
 4. [Cấu hình remediation cho custom rule](#configremediation)
-4. [Test remediation](#testremediation)
+5. [Clean up](#cleanup)
 
 
-## Giới thiệu <a name="introduction"></a>
-AWS Config là managed service cho phép cloud admin dễ dàng xem xét, kiểm tra và đánh giá cấu hình các tài nguyên trên AWS. Config liên tục đánh giá cấu hình các tài nguyên AWS thông qua AWS Config rule. Các rule này so sánh cấu hình của tài nguyên với một cấu hình lý tưởng người vận hành cloud có thể cấu hình.
+## Giới thiệu <a id="introduction"></a>
+AWS Config là managed service cho phép cloud admin dễ dàng xem xét, kiểm tra và đánh giá cấu hình các tài nguyên trên AWS. AWS Config liên tục đánh giá cấu hình các tài nguyên AWS thông qua AWS Config rule. Các rule này so sánh cấu hình của tài nguyên với một cấu hình lý tưởng người vận hành cloud có thể cấu hình.
 
 AWS Config bản thân có chứa rất nhiều rule có sẵn do AWS tạo sẵn và quản lý theo các best practice thông thường. Nhưng đôi khi các rule này chưa thể đáp ứng một trường hợp, cấu hình cụ thể người vận hành cloud muốn sử dụng. Trong trường hợp đó AWS Config cho cloud admin tạo AWS Config custom rules.
 
-Trong bài lab này, ta đưa ra trường hợp giả định: Một kẻ xấu lấy cắp được credential của admin cho phép run các ec2 instances, kẻ xấu này thường tạo rất nhiều instance ngoại cỡ để sử dụng vào đào bitcoin, botnet... Ta tạo ra một aws config custom lambda rule đánh dấu các ec2 instance có số cpu hoặc ram size vượt quá một giới hạn là không tuân thủ và terminate các instance đó
-
+Trong bài lab này, ta đưa ra trường hợp giả định: Một kẻ xấu lấy cắp được credential của admin cho phép run các ec2 instances, kẻ xấu này thường tạo rất nhiều instance ngoại cỡ để sử dụng vào đào bitcoin, botnet... Ta tạo ra một AWS Config custom lambda rule đánh dấu các ec2 instance có số cpu hoặc ram size vượt quá một giới hạn là không tuân thủ và terminate các instance đó
+## Prerequisites <a id="prerequisites"></a>
+Để làm bài lab này, bạn cần một tài khoản AWS, nếu chưa có: [đăng kí](https://portal.aws.amazon.com/billing/signup)<br />
+Một khi bạn đã có tài khoản AWS, tạo người dùng IAM với quyền Administrator access<br />
+Nếu không muốn sử dụng quyền admin, người dùng IAM cần có quyền tạo IAM Role, quản lý các service: AWS Lambda, AWS Config, AWS SSM, AWS EC2
+Charge có thể phát sinh:
+- số lượng evaluations của custom rule
+- lời gọi AWS Lambda function và thời gian execute của Lambda function
+- Số lượng step được excuted bởi AWS SSM Automation
 
 ## Tạo Lambda Function cho custom rule <a id="createlambdafunction"></a>
 
@@ -72,7 +79,7 @@ aws lambda update-function-code --function-name ConfigCustomRuleFunction --zip-f
 
 Function code xử lý event từ AWS Config:
 <details>
-  <summary>Click đẻ xem function code</summary>
+  <summary>Click để xem function code</summary>
 
 ```javascript
 import convertpro from 'convert-pro';
@@ -222,13 +229,13 @@ function checkDefined(refName ,ref){
 
 
 Function thực hiện các bước sau khi chạy:
-  1. function chạy khi aws config gọi function và truyền event vào function handler (có thể xem sample event ở [aws documentation](https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config_develop-rules_nodejs-sample.html))
+  1. function chạy khi AWS Config gọi function và truyền event vào function handler (có thể xem sample event ở [aws documentation](https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config_develop-rules_nodejs-sample.html))
   2. function kiểm tra `messageType` của event là configuration item hay oversized configuration item.
-  3. Nếu là configuration item thì function giữ nguyên format. Nếu là oversized configuration item thì function lấy dữ liệu configuration từ config api `ResourceConfigHistory`
+  3. Nếu là configuration item thì function giữ nguyên format. Nếu là oversized configuration item thì function lấy dữ liệu configuration từ AWS Config API `ResourceConfigHistory`
   4. function handler gọi function `isApplicable` check xem resource đã bị delete hay không
   5. function lấy thông tin instance type và check xem cpu hoặc ram có vượt quá cấu hình đã định. Nếu vượt quá function gửi kết quả là `NON_COMPLIANT` về AWS Config sử dụng lời gọi API `PutEvaluations` và ngược lại gửi `COMPLIANT` nếu instance không vượt quá limit
 
-## Tạo Custom Config rule <a id="createconfigrule"></a>
+## Tạo Custom AWS Config rule <a id="createconfigrule"></a>
 - Vào cửa sổ [AWS Config](https://ap-southeast-1.console.aws.amazon.com/config/home?region=ap-southeast-1#/dashboard) và chọn `Add rule`
 - Trong cửa sổ hiện ra, chọn `Create custom Lambda rule`
 
@@ -244,7 +251,7 @@ Function thực hiện các bước sau khi chạy:
 
 - Tại `Review and create` bấm `Add rule`
 
-## Test Custom rule <a id="testcustomrule"></a>
+### Test Custom rule <a id="testcustomrule"></a>
 Vào giao diện chi tiết rule vừa tạo, bấm vào `Action`, chọn `Re-evaluate`, tại Resrouces in scope ta có thể thấy danh sách các EC2 instance có instance type không vượt quá limit
 
 ![custom-rule-type](image/test-custom-rule-1.png)
@@ -272,7 +279,7 @@ Sau khi đã tạo xong custom rule và phát hiện được các instance vư�
 
 ![custom-rule-type](image/config-remediation.png)
 
-## Test remediation <a id="testremediation"></a>
+### Test remediation <a id="testremediation"></a>
 Tạo tạo một instance vượt quá limit, ở đây sử dụng instance type t3.2xlarge với 8vcpu và 32gib ram
 
 ![custom-rule-type](image/test-remediation-launch-instance.png)
@@ -288,5 +295,9 @@ Vào giao diện danh sách các instance, ta thấy trạng thái instance tr�
 
 ![custom-rule-type](image/remediation-instance-terminated.png)
 
-
+## Clean up <a id="cleanup"></a>
+1. Chọn xem detail custom rule tạo trong lab, tại phần Remediation action, chọn Delete
+2. Xóa rule đã tạo sử dụng bầng cách chọn rule, ấn `actions`, chọn `Delete rule`
+3. Xóa Custom Lambda function `ConfigCustomRuleFunction`
+4. Xóa IAM Role `LambdaCustomConfigRole` và Managed IAM Policy `LambdaCustomConfigPolicy`
 
