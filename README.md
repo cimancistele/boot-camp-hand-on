@@ -14,14 +14,14 @@ AWS Config là managed service cho phép cloud admin dễ dàng xem xét, kiểm
 
 AWS Config bản thân có chứa rất nhiều rule có sẵn do AWS tạo sẵn và quản lý theo các best practice thông thường. Nhưng đôi khi các rule này chưa thể đáp ứng một trường hợp, cấu hình cụ thể người vận hành cloud muốn sử dụng. Trong trường hợp đó AWS Config cho cloud admin tạo AWS Config custom rules.
 
-Trong bài lab này, ta đưa ra trường hợp giả định: Một kẻ xấu lấy cắp được credential của admin cho phép run các ec2 instances, kẻ xấu này thường tạo rất nhiều instance ngoại cỡ để sử dụng vào đào bitcoin, botnet... Ta tạo ra một AWS Config custom lambda rule đánh dấu các ec2 instance có số cpu hoặc ram size vượt quá một giới hạn là không tuân thủ và terminate các instance đó
+Trong bài lab này, ta đưa ra trường hợp giả định: Một kẻ xấu lấy cắp được credential của admin cho phép run các EC2 instances, kẻ xấu này thường tạo rất nhiều instance ngoại cỡ để sử dụng vào đào bitcoin, botnet... Ta tạo ra một AWS Config custom lambda rule đánh dấu các EC2 instance có số cpu hoặc ram size vượt quá một giới hạn là không tuân thủ và terminate các instance đó
 ## Prerequisites <a id="prerequisites"></a>
 Để làm bài lab này, bạn cần một tài khoản AWS, nếu chưa có: [đăng kí](https://portal.aws.amazon.com/billing/signup)<br />
 Một khi bạn đã có tài khoản AWS, tạo người dùng IAM với quyền Administrator access<br />
 Nếu không muốn sử dụng quyền admin, người dùng IAM cần có quyền tạo IAM Role, quản lý các service: AWS Lambda, AWS Config, AWS SSM, AWS EC2
 Charge có thể phát sinh:
-- số lượng evaluations của custom rule
-- lời gọi AWS Lambda function và thời gian execute của Lambda function
+- Số lượng evaluations của custom rule
+- Lời gọi AWS Lambda function và thời gian execute của Lambda function
 - Số lượng step được excuted bởi AWS SSM Automation
 
 ## Tạo Lambda Function cho custom rule <a id="createlambdafunction"></a>
@@ -229,11 +229,11 @@ function checkDefined(refName ,ref){
 
 
 Function thực hiện các bước sau khi chạy:
-  1. function chạy khi AWS Config gọi function và truyền event vào function handler (có thể xem sample event ở [aws documentation](https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config_develop-rules_nodejs-sample.html))
-  2. function kiểm tra `messageType` của event là configuration item hay oversized configuration item.
+  1. Function chạy khi AWS Config gọi function và truyền event vào function handler (có thể xem sample event ở [aws documentation](https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config_develop-rules_nodejs-sample.html))
+  2. Function kiểm tra `messageType` của event là configuration item hay oversized configuration item.
   3. Nếu là configuration item thì function giữ nguyên format. Nếu là oversized configuration item thì function lấy dữ liệu configuration từ AWS Config API `ResourceConfigHistory`
-  4. function handler gọi function `isApplicable` check xem resource đã bị delete hay không
-  5. function lấy thông tin instance type và check xem cpu hoặc ram có vượt quá cấu hình đã định. Nếu vượt quá function gửi kết quả là `NON_COMPLIANT` về AWS Config sử dụng lời gọi API `PutEvaluations` và ngược lại gửi `COMPLIANT` nếu instance không vượt quá limit
+  4. Function handler gọi function `isApplicable` check xem resource đã bị delete hay không
+  5. Function lấy thông tin instance type và check xem cpu hoặc ram có vượt quá cấu hình đã định. Nếu vượt quá function gửi kết quả là `NON_COMPLIANT` về AWS Config sử dụng lời gọi API `PutEvaluations` và ngược lại gửi `COMPLIANT` nếu instance không vượt quá limit
 
 ## Tạo Custom AWS Config rule <a id="createconfigrule"></a>
 - Vào cửa sổ [AWS Config](https://ap-southeast-1.console.aws.amazon.com/config/home?region=ap-southeast-1#/dashboard) và chọn `Add rule`
